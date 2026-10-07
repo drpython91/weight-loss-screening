@@ -1,13 +1,12 @@
 import json
-
 import streamlit as st
 
 from eligibility import evaluate_patient
 
 
-# -----------------------------
-# Page configuration
-# -----------------------------
+# =========================================================
+# PAGE CONFIGURATION
+# =========================================================
 
 st.set_page_config(
     page_title="غربالگری درمان کاهش وزن",
@@ -16,9 +15,9 @@ st.set_page_config(
 )
 
 
-# -----------------------------
-# RTL / Persian styling
-# -----------------------------
+# =========================================================
+# RTL / PERSIAN STYLE
+# =========================================================
 
 st.markdown(
     """
@@ -29,12 +28,17 @@ st.markdown(
         text-align: right;
     }
 
-    h1, h2, h3, p, label {
+    h1, h2, h3, h4, p, label {
         direction: rtl;
         text-align: right;
     }
 
     div[data-testid="stRadio"] {
+        direction: rtl;
+        text-align: right;
+    }
+
+    div[data-testid="stNumberInput"] {
         direction: rtl;
         text-align: right;
     }
@@ -45,9 +49,9 @@ st.markdown(
 )
 
 
-# -----------------------------
-# Load questions
-# -----------------------------
+# =========================================================
+# LOAD QUESTIONS
+# =========================================================
 
 def load_questions():
 
@@ -64,9 +68,9 @@ def load_questions():
 questions = load_questions()
 
 
-# -----------------------------
-# BMI calculation
-# -----------------------------
+# =========================================================
+# BMI CALCULATION
+# =========================================================
 
 def calculate_bmi(weight, height):
 
@@ -75,20 +79,22 @@ def calculate_bmi(weight, height):
     return weight / (height_m ** 2)
 
 
-# -----------------------------
-# Page title
-# -----------------------------
+# =========================================================
+# PAGE TITLE
+# =========================================================
 
 st.title("غربالگری اولیه درمان کاهش وزن")
 
 st.write(
-    "لطفاً اطلاعات زیر را وارد کنید."
+    "لطفاً اطلاعات زیر را با دقت وارد کنید. "
+    "این پرسشنامه فقط برای غربالگری اولیه است "
+    "و جایگزین تشخیص یا تجویز پزشک نیست."
 )
 
 
-# -----------------------------
-# Patient data
-# -----------------------------
+# =========================================================
+# PATIENT DATA
+# =========================================================
 
 patient = {}
 
@@ -96,15 +102,28 @@ patient = {}
 for question in questions:
 
     question_id = question["id"]
+
     question_type = question["type"]
 
-    # -------------------------
-    # Number questions
-    # -------------------------
+
+    # -----------------------------------------------------
+    # NUMBER QUESTIONS
+    # -----------------------------------------------------
 
     if question_type == "number":
 
-        if question_id == "weight":
+        if question_id == "age":
+
+            patient[question_id] = st.number_input(
+                question["question"],
+                min_value=0,
+                max_value=120,
+                value=0,
+                step=1
+            )
+
+
+        elif question_id == "weight":
 
             patient[question_id] = st.number_input(
                 question["question"],
@@ -113,6 +132,7 @@ for question in questions:
                 value=70.0,
                 step=0.5
             )
+
 
         elif question_id == "height":
 
@@ -124,17 +144,10 @@ for question in questions:
                 step=1.0
             )
 
-        else:
 
-            patient[question_id] = st.number_input(
-                question["question"],
-                min_value=0.0,
-                step=1.0
-            )
-
-    # -------------------------
-    # Boolean questions
-    # -------------------------
+    # -----------------------------------------------------
+    # BOOLEAN QUESTIONS
+    # -----------------------------------------------------
 
     elif question_type == "boolean":
 
@@ -143,10 +156,18 @@ for question in questions:
         selected = st.radio(
             question["question"],
             options=list(options.keys()),
+
             format_func=lambda key: options[key],
+
             horizontal=True,
+
+            # IMPORTANT:
+            # Default = "I don't know"
+            index=2,
+
             key=question_id
         )
+
 
         if selected == "1":
 
@@ -161,11 +182,12 @@ for question in questions:
             patient[question_id] = None
 
 
-# -----------------------------
-# Calculate BMI
-# -----------------------------
+# =========================================================
+# BMI
+# =========================================================
 
 weight = patient["weight"]
+
 height = patient["height"]
 
 bmi = calculate_bmi(
@@ -176,13 +198,13 @@ bmi = calculate_bmi(
 patient["bmi"] = bmi
 
 
-# -----------------------------
-# Display BMI
-# -----------------------------
+# =========================================================
+# BMI DISPLAY
+# =========================================================
 
 st.divider()
 
-st.subheader("محاسبه BMI")
+st.subheader("محاسبه شاخص توده بدنی (BMI)")
 
 st.metric(
     "BMI",
@@ -190,9 +212,33 @@ st.metric(
 )
 
 
-# -----------------------------
-# Evaluation button
-# -----------------------------
+# =========================================================
+# BMI INTERPRETATION
+# =========================================================
+
+if bmi < 27:
+
+    st.info(
+        "BMI کمتر از 27 است."
+    )
+
+elif 27 <= bmi < 30:
+
+    st.info(
+        "BMI بین 27 تا 30 است؛ "
+        "وجود بیماری‌های همراه مرتبط با وزن در تصمیم‌گیری اهمیت دارد."
+    )
+
+else:
+
+    st.info(
+        "BMI برابر یا بیشتر از 30 است."
+    )
+
+
+# =========================================================
+# EVALUATION BUTTON
+# =========================================================
 
 if st.button(
     "شروع ارزیابی",
@@ -201,14 +247,17 @@ if st.button(
 
     results = evaluate_patient(patient)
 
+
+    # =====================================================
+    # RESULTS
+    # =====================================================
+
     st.divider()
 
-    st.header("نتیجه غربالگری اولیه")
+    st.header(
+        "نتیجه غربالگری اولیه"
+    )
 
-
-    # -------------------------
-    # Results
-    # -------------------------
 
     for result in results.values():
 
@@ -216,11 +265,13 @@ if st.button(
             result["drug"]
         )
 
-        # ---------------------
-        # Eligibility
-        # ---------------------
+
+        # -------------------------------------------------
+        # ELIGIBILITY
+        # -------------------------------------------------
 
         eligibility = result["eligibility"]
+
 
         if eligibility == "ELIGIBLE":
 
@@ -228,11 +279,13 @@ if st.button(
                 "✓ واجد معیار اولیه"
             )
 
+
         elif eligibility == "NOT_ELIGIBLE":
 
             st.warning(
-                "معیار اولیه ورود وجود ندارد."
+                "معیار اولیه ورود به درمان دارویی وجود ندارد."
             )
+
 
         elif eligibility == "NEEDS_PHYSICIAN_REVIEW":
 
@@ -241,11 +294,12 @@ if st.button(
             )
 
 
-        # ---------------------
-        # Safety status
-        # ---------------------
+        # -------------------------------------------------
+        # SAFETY STATUS
+        # -------------------------------------------------
 
         status = result["status"]
+
 
         if status == "CONTRAINDICATED":
 
@@ -253,11 +307,20 @@ if st.button(
                 "✗ منع مصرف شناسایی شد"
             )
 
+
+        elif status == "NOT_ELIGIBLE":
+
+            st.warning(
+                "معیار اولیه برای درمان دارویی کاهش وزن وجود ندارد."
+            )
+
+
         elif status == "NEEDS_PHYSICIAN_REVIEW":
 
             st.warning(
                 "⚠ نیازمند بررسی پزشک"
             )
+
 
         elif status == "NO_CLEAR_BARRIER":
 
@@ -266,13 +329,15 @@ if st.button(
             )
 
 
-        # ---------------------
-        # Reasons
-        # ---------------------
+        # -------------------------------------------------
+        # REASONS
+        # -------------------------------------------------
 
         if result["reasons"]:
 
-            st.write("دلایل:")
+            st.write(
+                "**دلایل:**"
+            )
 
             for reason in result["reasons"]:
 
@@ -281,26 +346,49 @@ if st.button(
                 )
 
 
-        # ---------------------
-        # Final note
-        # ---------------------
+        # -------------------------------------------------
+        # FINAL MESSAGE
+        # -------------------------------------------------
 
         if status == "NO_CLEAR_BARRIER":
 
             st.info(
-                "این نتیجه به معنی تجویز یا تأیید نهایی دارو نیست."
+                "این نتیجه به معنی تجویز یا تأیید نهایی دارو نیست. "
+                "تصمیم نهایی باید توسط پزشک گرفته شود."
             )
+
 
         elif status == "NEEDS_PHYSICIAN_REVIEW":
 
             st.info(
-                "تصمیم نهایی باید توسط پزشک گرفته شود."
+                "اطلاعات موجود برای تصمیم‌گیری خودکار کافی نیست "
+                "و بررسی پزشک لازم است."
             )
+
 
         elif status == "CONTRAINDICATED":
 
             st.info(
-                "در غربالگری اولیه، منع مصرف شناسایی شده است."
+                "در غربالگری اولیه، یک یا چند مورد منع مصرف شناسایی شده است."
             )
 
+
+        elif status == "NOT_ELIGIBLE":
+
+            st.info(
+                "بر اساس اطلاعات اولیه، معیار لازم برای ورود به درمان "
+                "دارویی کاهش وزن وجود ندارد."
+            )
+
+
         st.divider()
+
+
+# =========================================================
+# FOOTER
+# =========================================================
+
+st.caption(
+    "این ابزار برای غربالگری اولیه طراحی شده است و جایگزین "
+    "ارزیابی، تشخیص و تجویز پزشک نیست."
+)

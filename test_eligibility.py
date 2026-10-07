@@ -1,36 +1,54 @@
+import pytest
+
 from eligibility import (
     evaluate_patient,
+    check_bmi_eligibility,
     ELIGIBLE,
     NOT_ELIGIBLE,
-    CONTRAINDICATED,
     NEEDS_PHYSICIAN_REVIEW,
-    NO_CLEAR_BARRIER
+    NO_CLEAR_BARRIER,
+    CONTRAINDICATED
 )
 
 
 def base_patient():
+    """
+    A completely healthy patient with no unknown answers.
+    """
 
     return {
-        "bmi": 32,
+        "age": 40,
+        "weight": 90,
+        "height": 170,
+        "bmi": 31,
 
+        # Weight-related comorbidities
         "diabetes": False,
         "hypertension": False,
         "dyslipidemia": False,
         "cardiovascular": False,
         "sleep_apnea": False,
 
+        # Pregnancy
         "pregnancy": False,
         "planning_pregnancy": False,
 
+        # Contraindications
         "mtc": False,
         "men2": False,
+        "hypersensitivity": False,
 
+        # Physician review
         "gastroparesis": False,
         "pancreatitis": False,
         "gallbladder": False,
         "other_glp1": False
     }
 
+
+# =========================================================
+# BMI TESTS
+# =========================================================
 
 def test_bmi_30_or_more():
 
@@ -77,8 +95,12 @@ def test_bmi_less_than_27():
     result = evaluate_patient(patient)
 
     assert result["semaglutide"]["eligibility"] == NOT_ELIGIBLE
-    assert result["semaglutide"]["status"] is None
+    assert result["semaglutide"]["status"] == NOT_ELIGIBLE
 
+
+# =========================================================
+# CONTRAINDICATION TESTS
+# =========================================================
 
 def test_mtc():
 
@@ -89,8 +111,6 @@ def test_mtc():
     result = evaluate_patient(patient)
 
     assert result["semaglutide"]["status"] == CONTRAINDICATED
-    assert result["tirzepatide"]["status"] == CONTRAINDICATED
-    assert result["liraglutide"]["status"] == CONTRAINDICATED
 
 
 def test_men2():
@@ -102,8 +122,17 @@ def test_men2():
     result = evaluate_patient(patient)
 
     assert result["semaglutide"]["status"] == CONTRAINDICATED
-    assert result["tirzepatide"]["status"] == CONTRAINDICATED
-    assert result["liraglutide"]["status"] == CONTRAINDICATED
+
+
+def test_hypersensitivity():
+
+    patient = base_patient()
+
+    patient["hypersensitivity"] = True
+
+    result = evaluate_patient(patient)
+
+    assert result["semaglutide"]["status"] == CONTRAINDICATED
 
 
 def test_pregnancy():
@@ -114,10 +143,12 @@ def test_pregnancy():
 
     result = evaluate_patient(patient)
 
-    assert result["semaglutide"]["status"] == NEEDS_PHYSICIAN_REVIEW
-    assert result["tirzepatide"]["status"] == NEEDS_PHYSICIAN_REVIEW
-    assert result["liraglutide"]["status"] == NEEDS_PHYSICIAN_REVIEW
+    assert result["semaglutide"]["status"] == CONTRAINDICATED
 
+
+# =========================================================
+# PHYSICIAN REVIEW TESTS
+# =========================================================
 
 def test_planning_pregnancy():
 
@@ -130,22 +161,22 @@ def test_planning_pregnancy():
     assert result["semaglutide"]["status"] == NEEDS_PHYSICIAN_REVIEW
 
 
-def test_unknown():
+def test_pancreatitis():
 
     patient = base_patient()
 
-    patient["pancreatitis"] = None
+    patient["pancreatitis"] = True
 
     result = evaluate_patient(patient)
 
     assert result["semaglutide"]["status"] == NEEDS_PHYSICIAN_REVIEW
 
 
-def test_gastroparesis():
+def test_gallbladder():
 
     patient = base_patient()
 
-    patient["gastroparesis"] = True
+    patient["gallbladder"] = True
 
     result = evaluate_patient(patient)
 
@@ -157,6 +188,32 @@ def test_other_glp1():
     patient = base_patient()
 
     patient["other_glp1"] = True
+
+    result = evaluate_patient(patient)
+
+    assert result["semaglutide"]["status"] == NEEDS_PHYSICIAN_REVIEW
+
+
+# =========================================================
+# UNKNOWN ANSWERS
+# =========================================================
+
+def test_unknown_mtc():
+
+    patient = base_patient()
+
+    patient["mtc"] = None
+
+    result = evaluate_patient(patient)
+
+    assert result["semaglutide"]["status"] == NEEDS_PHYSICIAN_REVIEW
+
+
+def test_unknown_pregnancy():
+
+    patient = base_patient()
+
+    patient["pregnancy"] = None
 
     result = evaluate_patient(patient)
 

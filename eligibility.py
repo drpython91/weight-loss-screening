@@ -1,38 +1,33 @@
-# eligibility.py
-
 from drug_rules import (
     DRUG_RULES,
     REASONS,
     UNKNOWN_REASONS
 )
 
-
-# وضعیت ایمنی دارو
 CONTRAINDICATED = "CONTRAINDICATED"
 NEEDS_PHYSICIAN_REVIEW = "NEEDS_PHYSICIAN_REVIEW"
 NO_CLEAR_BARRIER = "NO_CLEAR_BARRIER"
 
-# وضعیت معیار اولیه ورود
 ELIGIBLE = "ELIGIBLE"
 NOT_ELIGIBLE = "NOT_ELIGIBLE"
 
 
 def check_bmi_eligibility(patient):
     """
-    بررسی معیار اولیه BMI برای ورود به ارزیابی درمان دارویی.
-
     BMI >= 30:
-        واجد معیار اولیه
+        Eligible
 
-    BMI بین 27 و کمتر از 30:
-        در صورت وجود حداقل یک کوموربیدیتی مرتبط با وزن،
-        واجد معیار اولیه است.
+    27 <= BMI < 30:
+        Eligible if at least one weight-related comorbidity exists
 
-    BMI بین 27 و کمتر از 30 بدون کوموربیدیتی:
-        نیازمند ارزیابی پزشک
+    27 <= BMI < 30 without comorbidity:
+        Physician review
 
     BMI < 27:
-        واجد معیار اولیه نیست.
+        Not eligible
+
+    BMI missing:
+        Unknown
     """
 
     bmi = patient.get("bmi")
@@ -40,15 +35,12 @@ def check_bmi_eligibility(patient):
     if bmi is None:
         return "UNKNOWN"
 
-    # BMI >= 30
     if bmi >= 30:
         return ELIGIBLE
 
-    # BMI < 27
     if bmi < 27:
         return NOT_ELIGIBLE
 
-    # 27 <= BMI < 30
     comorbidities = [
         patient.get("diabetes"),
         patient.get("hypertension"),
@@ -64,12 +56,6 @@ def check_bmi_eligibility(patient):
 
 
 def evaluate_drug(drug, patient):
-    """
-    ارزیابی اولیه یک دارو.
-
-    ابتدا معیار BMI بررسی می‌شود.
-    سپس، در صورت امکان، ایمنی دارو بررسی می‌شود.
-    """
 
     bmi_status = check_bmi_eligibility(patient)
 
@@ -80,7 +66,7 @@ def evaluate_drug(drug, patient):
         "reasons": []
     }
 
-    # BMI نامشخص
+    # BMI unknown
     if bmi_status == "UNKNOWN":
 
         result["status"] = NEEDS_PHYSICIAN_REVIEW
@@ -91,16 +77,18 @@ def evaluate_drug(drug, patient):
 
         return result
 
-    # BMI کمتر از 27
+    # BMI < 27
     if bmi_status == NOT_ELIGIBLE:
 
+        result["status"] = NOT_ELIGIBLE
+
         result["reasons"].append(
-            "BMI کمتر از 27 است و معیار اولیه ورود به درمان دارویی وجود ندارد."
+            "BMI کمتر از 27 است و معیار اولیه ورود به درمان دارویی کاهش وزن وجود ندارد."
         )
 
         return result
 
-    # BMI بین 27 و 30 بدون کوموربیدیتی
+    # BMI 27-30 without comorbidity
     if bmi_status == NEEDS_PHYSICIAN_REVIEW:
 
         result["status"] = NEEDS_PHYSICIAN_REVIEW
@@ -111,50 +99,43 @@ def evaluate_drug(drug, patient):
 
         return result
 
-    # --------------------------------
-    # از اینجا به بعد بیمار واجد معیار اولیه است
-    # --------------------------------
-
+    # BMI eligible
     rules = DRUG_RULES[drug]
 
     contraindications = []
     review_reasons = []
 
-    # بررسی موارد منع مصرف
+    # Contraindications
     for field in rules["contraindications"]:
 
         value = patient.get(field)
 
         if value is True:
-
             contraindications.append(
                 REASONS[field]
             )
 
         elif value is None:
-
             review_reasons.append(
                 UNKNOWN_REASONS[field]
             )
 
-    # بررسی موارد نیازمند نظر پزشک
+    # Physician review
     for field in rules["physician_review"]:
 
         value = patient.get(field)
 
         if value is True:
-
             review_reasons.append(
                 REASONS[field]
             )
 
         elif value is None:
-
             review_reasons.append(
                 UNKNOWN_REASONS[field]
             )
 
-    # اگر منع مصرف وجود داشته باشد
+    # Any contraindication
     if contraindications:
 
         result["status"] = CONTRAINDICATED
@@ -169,7 +150,7 @@ def evaluate_drug(drug, patient):
 
         return result
 
-    # اگر نیاز به نظر پزشک وجود داشته باشد
+    # Physician review needed
     if review_reasons:
 
         result["status"] = NEEDS_PHYSICIAN_REVIEW
@@ -180,14 +161,13 @@ def evaluate_drug(drug, patient):
 
         return result
 
-    # هیچ مانع واضحی پیدا نشد
+    # No clear barrier
     result["status"] = NO_CLEAR_BARRIER
 
     return result
 
 
 def check_semaglutide(patient):
-
     return evaluate_drug(
         "Semaglutide",
         patient
@@ -195,7 +175,6 @@ def check_semaglutide(patient):
 
 
 def check_tirzepatide(patient):
-
     return evaluate_drug(
         "Tirzepatide",
         patient
@@ -203,7 +182,6 @@ def check_tirzepatide(patient):
 
 
 def check_liraglutide(patient):
-
     return evaluate_drug(
         "Liraglutide",
         patient

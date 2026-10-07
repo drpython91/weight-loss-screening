@@ -1,16 +1,15 @@
-# drug_rules.py
-
-
 DRUG_RULES = {
 
     "Semaglutide": {
+
         "contraindications": [
             "mtc",
-            "men2"
+            "men2",
+            "hypersensitivity",
+            "pregnancy"
         ],
 
         "physician_review": [
-            "pregnancy",
             "planning_pregnancy",
             "gastroparesis",
             "pancreatitis",
@@ -20,13 +19,15 @@ DRUG_RULES = {
     },
 
     "Tirzepatide": {
+
         "contraindications": [
             "mtc",
-            "men2"
+            "men2",
+            "hypersensitivity",
+            "pregnancy"
         ],
 
         "physician_review": [
-            "pregnancy",
             "planning_pregnancy",
             "gastroparesis",
             "pancreatitis",
@@ -36,13 +37,15 @@ DRUG_RULES = {
     },
 
     "Liraglutide": {
+
         "contraindications": [
             "mtc",
-            "men2"
+            "men2",
+            "hypersensitivity",
+            "pregnancy"
         ],
 
         "physician_review": [
-            "pregnancy",
             "planning_pregnancy",
             "gastroparesis",
             "pancreatitis",
@@ -56,19 +59,22 @@ DRUG_RULES = {
 REASONS = {
 
     "pregnancy":
-        "بارداری",
+        "بارداری فعلی؛ مصرف دارو برای کاهش وزن نباید در بارداری ادامه یابد.",
 
     "planning_pregnancy":
-        "قصد بارداری",
+        "قصد بارداری؛ زمان قطع دارو و برنامه‌ریزی درمان باید توسط پزشک بررسی شود.",
 
     "mtc":
-        "سابقه شخصی یا خانوادگی سرطان مدولاری تیروئید",
+        "سابقه شخصی یا خانوادگی سرطان مدولاری تیروئید (MTC)",
 
     "men2":
         "سابقه سندرم MEN2",
 
+    "hypersensitivity":
+        "سابقه حساسیت شدید به دارو یا اجزای آن",
+
     "gastroparesis":
-        "سابقه گاستروپارزی شدید",
+        "علائم یا سابقه گاستروپارزی شدید",
 
     "pancreatitis":
         "سابقه پانکراتیت",
@@ -77,7 +83,7 @@ REASONS = {
         "سابقه بیماری یا سنگ کیسه صفرا",
 
     "other_glp1":
-        "مصرف داروی GLP-1 دیگر"
+        "مصرف همزمان داروی GLP-1 یا داروی مشابه"
 }
 
 
@@ -95,8 +101,11 @@ UNKNOWN_REASONS = {
     "men2":
         "سابقه MEN2 نامشخص است",
 
+    "hypersensitivity":
+        "سابقه حساسیت شدید به دارو نامشخص است",
+
     "gastroparesis":
-        "وضعیت گاستروپارزی شدید نامشخص است",
+        "وضعیت علائم یا سابقه گاستروپارزی شدید نامشخص است",
 
     "pancreatitis":
         "وضعیت سابقه پانکراتیت نامشخص است",
